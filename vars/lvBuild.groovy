@@ -1,5 +1,5 @@
 def call(lvProjectPath, targetName, buildSpecName, lvVersion, lvBitness) {
-	def stepsDir = "${WORKSPACE}\\jenkinsbuildsystem\\steps"
+	def stepsDir = "${WORKSPACE}\\${BUILD_SYSTEM_REPO}\\steps"
 	def projectPath = "${WORKSPACE}\\${lvProjectPath}"
 		
 	echo 'Running LabVIEW build spec on project'
