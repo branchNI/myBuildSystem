@@ -1,7 +1,7 @@
 def call(lvVersion, lvBitness) {
 	def diffDir = "${WORKSPACE}\\DIFFDIR"
 	def stepsDir = "${WORKSPACE}\\${BUILD_SYSTEM_REPO}\\steps"
-	def operationsDir = "${WORKSPACE}\\${BUILD_SYSTEM_REPO}\\lv\\operations\"
+	def operationsDir = "${WORKSPACE}\\${BUILD_SYSTEM_REPO}\\lv\\operations\\"
 	def prNum = env.CHANGE_ID
 	def repo = getComponentParts()['repo']
 
