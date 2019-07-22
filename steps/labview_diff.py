@@ -9,7 +9,7 @@ from contextlib import contextmanager
 from os import path
 
 
-def diff_vi(old_vi, new_vi, output_dir, workspace, lv_version, lv_bitness):
+def diff_vi(old_vi, new_vi, output_dir, operations_dir, lv_version, lv_bitness):
     """
     Generates a diff of LabVIEW VIs
 
@@ -18,7 +18,7 @@ def diff_vi(old_vi, new_vi, output_dir, workspace, lv_version, lv_bitness):
     :param old_vi: The older version of the VI; if bool(vi1) is false, the VI is assumed to be newly added
     :param new_vi: The newer version of the VI
     :param output_dir: The directory in which to store output
-    :param workspace: The directory above the niveristand-custom-device-build-tools
+    :param operations_dir: Directory of additional LabVIEWCLI operations
     :param lv_version: The year version of LabVIEW to use for diffing
     :param lv_bitness: Bitness of LabVIEW (either "32" or "64")
     """
@@ -28,7 +28,7 @@ def diff_vi(old_vi, new_vi, output_dir, workspace, lv_version, lv_bitness):
     command_args = [
         "LabVIEWCLI.exe",
         "-LabVIEWPath", version_path,
-        "-AdditionalOperationDirectory", workspace + r"\jenkinsbuildsystem\lv\operations\\",
+        "-AdditionalOperationDirectory", operations_dir,
         "-OperationName", "DiffVI",
         "-NewVI", new_vi,
         "-OutputDir", output_dir,
@@ -106,14 +106,14 @@ def get_changed_labview_files(target_ref):
         yield match.group(1), match.group(2)
 
 
-def diff_repo(workspace, output_dir, target_branch, lv_version, lv_bitness):
+def diff_repo(operations_dir, output_dir, target_branch, lv_version, lv_bitness):
     diffs = get_changed_labview_files(target_branch)
 
     with export_repo(target_branch) as directory:
         for status, filename in diffs:
             if status == "A":
                 print("Diffing added file: " + filename)
-                diff_vi(None, path.abspath(filename), path.abspath(output_dir), workspace, lv_version, lv_bitness)
+                diff_vi(None, path.abspath(filename), path.abspath(output_dir), path.abspath(operations_dir), lv_version, lv_bitness)
             elif status == "M":
                 print("Diffing modified file: " + filename)
                 # LabVIEW won't let us load two files with the same name into memory,
@@ -123,7 +123,7 @@ def diff_repo(workspace, output_dir, target_branch, lv_version, lv_bitness):
                 old_file = path.join(directory.name, filename)
                 copied_file = path.join(path.dirname(old_file), "_COPY_" + path.basename(filename))
                 shutil.copy(old_file, copied_file)
-                diff_vi(copied_file, path.abspath(filename), path.abspath(output_dir), workspace, lv_version, lv_bitness)
+                diff_vi(copied_file, path.abspath(filename), path.abspath(output_dir), path.abspath(operations_dir), lv_version, lv_bitness)
             else:
                 print("Unknown file status: " + filename)
 
@@ -132,10 +132,10 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    
     parser.add_argument(
-        "workspace",
-        help="Directory which contains the `niveristand-custom-device-build-tools` repository "
-             "(as opposed to the `niveristand-custom-device-build-tools` repository itself)"
+        "operations_dir",
+        help="Directory of additional LabVIEWCLI operations"
     )
     parser.add_argument(
         "output_dir",
@@ -146,15 +146,16 @@ if __name__ == "__main__":
         help="Year version of LabVIEW you wish to use for diffing"
     )
     parser.add_argument(
+        "labview_bitness",
+        help="Bitness of LabVIEW (either \"32\" or \"64\")"
+    )
+    parser.add_argument(
         "--target",
         help="Target branch or ref the diff is being generated against",
         default="origin/master"
     )
-    parser.add_argument(
-        "labview_bitness",
-        help="Bitness of LabVIEW (either \"32\" or \"64\")"
-    )
+
 
     args = parser.parse_args()
 
-    diff_repo(args.workspace, args.output_dir, args.target, args.labview_version, args.labview_bitness)
+    diff_repo(args.operations_dir, args.output_dir, args.labview_version, args.labview_bitness, args.target)
