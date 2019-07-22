@@ -106,7 +106,7 @@ def get_changed_labview_files(target_ref):
         yield match.group(1), match.group(2)
 
 
-def diff_repo(operations_dir, output_dir, target_branch, lv_version, lv_bitness):
+def diff_repo(operations_dir, output_dir, lv_version, lv_bitness, target_branch):
     diffs = get_changed_labview_files(target_branch)
 
     with export_repo(target_branch) as directory:
@@ -132,7 +132,6 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    
     parser.add_argument(
         "operations_dir",
         help="Directory of additional LabVIEWCLI operations"
@@ -154,7 +153,6 @@ if __name__ == "__main__":
         help="Target branch or ref the diff is being generated against",
         default="origin/master"
     )
-
 
     args = parser.parse_args()
 
