@@ -9,7 +9,7 @@ from contextlib import contextmanager
 from os import path
 
 
-def diff_vi(old_vi, new_vi, output_dir, workspace, lv_version):
+def diff_vi(old_vi, new_vi, output_dir, workspace, lv_version, lv_bitness):
     """
     Generates a diff of LabVIEW VIs
 
@@ -20,9 +20,10 @@ def diff_vi(old_vi, new_vi, output_dir, workspace, lv_version):
     :param output_dir: The directory in which to store output
     :param workspace: The directory above the niveristand-custom-device-build-tools
     :param lv_version: The year version of LabVIEW to use for diffing
+    :param lv_bitness: Bitness of LabVIEW (either "32" or "64")
     """
 
-    version_path = labview_path_from_year(lv_version)
+    version_path = labview_path_from_year(lv_version, lv_bitness)
 
     command_args = [
         "LabVIEWCLI.exe",
@@ -32,8 +33,6 @@ def diff_vi(old_vi, new_vi, output_dir, workspace, lv_version):
         "-NewVI", new_vi,
         "-OutputDir", output_dir,
     ]
-    
-    print("lv ops: " + workspace + r"\jenkinsbuildsystem\lv\operations\\")
 
     if old_vi:
         command_args.extend(["-OldVI", old_vi])
@@ -49,12 +48,17 @@ def diff_vi(old_vi, new_vi, output_dir, workspace, lv_version):
             file.write(new_vi + "\n")
 
 
-def labview_path_from_year(year):
+def labview_path_from_year(year, bitness):
     env_key = "labviewPath_" + str(year)
     if env_key in os.environ:
         return os.environ[env_key]
 
-    return r"{0}\National Instruments\LabVIEW {1}\LabVIEW.exe".format(os.environ["ProgramFiles(x86)"], year)
+    if bitness == "32":
+        return r"{0}\National Instruments\LabVIEW {1}\LabVIEW.exe".format(os.environ["ProgramFiles(x86)"], year)
+    elif bitness == "64":
+        return r"{0}\National Instruments\LabVIEW {1}\LabVIEW.exe".format(os.environ["ProgramFiles"], year)
+    else:
+        return None
 
 
 def export_repo(target_ref):
@@ -102,14 +106,14 @@ def get_changed_labview_files(target_ref):
         yield match.group(1), match.group(2)
 
 
-def diff_repo(workspace, output_dir, target_branch, lv_version):
+def diff_repo(workspace, output_dir, target_branch, lv_version, lv_bitness):
     diffs = get_changed_labview_files(target_branch)
 
     with export_repo(target_branch) as directory:
         for status, filename in diffs:
             if status == "A":
                 print("Diffing added file: " + filename)
-                diff_vi(None, path.abspath(filename), path.abspath(output_dir), workspace, lv_version)
+                diff_vi(None, path.abspath(filename), path.abspath(output_dir), workspace, lv_version, lv_bitness)
             elif status == "M":
                 print("Diffing modified file: " + filename)
                 # LabVIEW won't let us load two files with the same name into memory,
@@ -119,7 +123,7 @@ def diff_repo(workspace, output_dir, target_branch, lv_version):
                 old_file = path.join(directory.name, filename)
                 copied_file = path.join(path.dirname(old_file), "_COPY_" + path.basename(filename))
                 shutil.copy(old_file, copied_file)
-                diff_vi(copied_file, path.abspath(filename), path.abspath(output_dir), workspace, lv_version)
+                diff_vi(copied_file, path.abspath(filename), path.abspath(output_dir), workspace, lv_version, lv_bitness)
             else:
                 print("Unknown file status: " + filename)
 
@@ -146,7 +150,11 @@ if __name__ == "__main__":
         help="Target branch or ref the diff is being generated against",
         default="origin/master"
     )
+    parser.add_argument(
+        "labview_bitness",
+        help="Bitness of LabVIEW (either \"32\" or \"64\")"
+    )
 
     args = parser.parse_args()
 
-    diff_repo(args.workspace, args.output_dir, args.target, args.labview_version)
+    diff_repo(args.workspace, args.output_dir, args.target, args.labview_version, args.labview_bitness)

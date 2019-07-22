@@ -9,13 +9,15 @@ from contextlib import contextmanager
 from os import path
 
 
-def run_unit_tests(project_path, report_path, lv_version, lv_bitness):
+def build_lv_project(project_path, target_name, build_spec_name, lv_version, lv_bitness):
     """
-    Performs unit tests on a LabVIEW project.
+    Executes the specified build spec for the specified project.
 
-    :param project_path: Directory of the project to be unit tested
-    :param report_path: Directory to generate unit test reports to
-    :param lv_version: The year version of LabVIEW to use for unit testing
+    :param project_path: Path to the LabVIEW project to be built
+    :param target_name: Name of the target in the project containing the build specification
+    :param build_spec_name: Name of the build specification to be built
+    :param lv_version: The year version of LabVIEW to use for diffing
+    :param lv_bitness: Bitness of LabVIEW (either "32" or "64")
     """
 
     version_path = labview_path_from_year(lv_version, lv_bitness)
@@ -23,19 +25,17 @@ def run_unit_tests(project_path, report_path, lv_version, lv_bitness):
     command_args = [
         "LabVIEWCLI.exe",
         "-LabVIEWPath", version_path,
-        "-OperationName", "RunUnitTests",
+        "-OperationName", "ExecuteBuildSpec",
         "-ProjectPath", project_path,
-        "-JUnitReportPath", report_path,
+        "-BuildSpecName",
     ]
-    
+
     subprocess.call(["taskkill", "/IM", "labview.exe", "/F"])
-    
     try:
         subprocess.check_call(command_args)
     except subprocess.CalledProcessError:
-        print("Failed to perform unit tests on \"{0}\"".format(project_path))
+        print("Failed to build project \"{0}\". \n\tBuild spec name: \"{1}\"\n\tTarget:name: \"{2}\"".format(project_path, build_spec_name, target_name))
         traceback.print_exc()
-
 
 def labview_path_from_year(year, bitness):
     env_key = "labviewPath_" + str(year)
@@ -49,22 +49,26 @@ def labview_path_from_year(year, bitness):
     else:
         return None
 
-
 if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         "project_path",
-        help="Directory of the project to be unit tested"
+        help="Path to the LabVIEW project to be built"
     )
     parser.add_argument(
-        "report_path",
-        help="Directory to generate unit test reports to"
+        "target_name",
+        help="Name of the target in the project containing the build specification",
+        default="My Computer"
+    )
+    parser.add_argument(
+        "build_spec_name",
+        help="Name of the build specification to be built"
     )
     parser.add_argument(
         "labview_version",
-        help="Year version of LabVIEW you wish to use for unit testing"
+        help="The year version of LabVIEW to use for diffing"
     )
     parser.add_argument(
         "labview_bitness",
@@ -73,4 +77,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    run_unit_tests(args.project_path, args.report_path, args.labview_version, args.labview_bitness)
+    build_lv_project(args.project_path, args.target_name, args.build_spec_name, args.labview_version, args.labview_bitness)

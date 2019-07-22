@@ -3,7 +3,7 @@ def PULL_REQUEST = env.CHANGE_ID
 
 //ENTER THE ABOVE INFORMATION
 
-def call(utfPath, lvVersion, lvPath) {
+def call(lvProjectPath, lvBuildSpecName, lvVersion, lvBitness) {
 
 	switch(lvVersion){  //This is to abstract out the different Jenkinsfile conventions of setting version to 14.0 instead of 2014.
 	  case "18.0":
@@ -19,10 +19,6 @@ def call(utfPath, lvVersion, lvPath) {
 
 	node {
 		echo 'Starting Build...'
-		
-		//TEST
-		echo 'job name: '
-		echo env.JOB_NAME
 
 		stage ('Pre-Clean'){
 		preClean()
@@ -45,12 +41,25 @@ def call(utfPath, lvVersion, lvPath) {
 		  bat 'mkdir DIFFDIR'
         }
 		
+		echo 'Building build spec...'
+		
+		stage('Build project') {
+			try {
+				timeout(time: 60, unit: 'MINUTES') {
+				lvBuild(lvProjectPath, "My Computer", lvBuildSpecName, lvVersion, lvBitness)
+				}
+				} catch (err) {
+					currentBuild.result = "SUCCESS"
+					echo "Project Build Failed: ${err}"
+				}
+		}
+
 		echo 'Running unit tests...'
 		
 		stage ('Unit Tests') {
 			try {
 				timeout(time: 60, unit: 'MINUTES') {
-					lvUtf(lvVersion, utfPath)
+					lvUtf(lvProjectPath, lvVersion, lvBitness)
 					echo 'Unit tests Succeeded!'
 				}
 				} catch (err) {
@@ -66,7 +75,7 @@ def call(utfPath, lvVersion, lvPath) {
 			stage ('Diff VIs'){
 				try {
 				timeout(time: 60, unit: 'MINUTES') {
-					lvDiff(lvVersion)
+					lvDiff(lvVersion, lvBitness)
 					echo 'Diff Succeeded!'
 				}
 				} catch (err) {
