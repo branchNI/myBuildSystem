@@ -6,5 +6,6 @@ def call(lvProjectPath, lvVersion, lvBitness) {
 	echo 'Running unit tests on project'
 
 	bat "python -u \"${stepsDir}\\labview_utf.py\" \"${projectPath}\" \"${reportPath}\" ${lvVersion} ${lvBitness}"
+	junit allowEmptyResults: true, testResults: 'TEMPDIR\\report.xml'
 }
 
