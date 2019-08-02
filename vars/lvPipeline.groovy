@@ -48,7 +48,7 @@ def call(lvProjectPath, lvBuildSpecName, lvVersion, lvBitness) {
 				timeout(time: 60, unit: 'MINUTES') {
 				lvBuild(lvProjectPath, "My Computer", lvBuildSpecName, lvVersion, lvBitness)
 				}
-				} catch (err) {
+				} catch (Exception err) {
 					currentBuild.result = "SUCCESS"
 					echo "Project Build Failed: ${err}"
 				}
@@ -62,7 +62,7 @@ def call(lvProjectPath, lvBuildSpecName, lvVersion, lvBitness) {
 					lvUtf(lvProjectPath, lvVersion, lvBitness)
 					echo 'Unit tests Succeeded!'
 				}
-				} catch (err) {
+				} catch (Exception err) {
 					currentBuild.result = "SUCCESS"
 					echo "Unit Tests Failed: ${err}"
 				}
@@ -78,7 +78,7 @@ def call(lvProjectPath, lvBuildSpecName, lvVersion, lvBitness) {
 					lvDiff(lvVersion, lvBitness)
 					echo 'Diff Succeeded!'
 				}
-				} catch (err) {
+				} catch (Exception err) {
 					currentBuild.result = "SUCCESS"
 					echo "Diff Failed: ${err}"
 				}
